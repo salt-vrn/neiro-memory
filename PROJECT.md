@@ -69,7 +69,7 @@ After=network.target
 [Service]
 Type=simple
 WorkingDirectory=/path/to/neiro-memory
-ExecStart=/usr/bin/npx tsx server/index.ts
+ExecStart=/usr/bin/env npx tsx server/index.ts
 Environment=AUTH_HASH=$2a$12$...
 Environment=HOST=0.0.0.0
 Environment=PORT=8901
@@ -82,7 +82,7 @@ RestartSec=5
 WantedBy=multi-user.target
 ```
 
-> **Pitfall:** If `npx` is not in `/usr/bin/`, run `which npx` and use the full path.
+> **Pitfall:** `/usr/bin/env npx` finds `npx` via `$PATH`. If it still fails, check `which npx` and use the full path in `ExecStart`.
 
 ## Architecture
 
