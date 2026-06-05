@@ -80,6 +80,10 @@ const dict: Record<string, Record<Locale, string>> = {
   "file.conflictOverwrite": { en: "Overwrite", ru: "Перезаписать" },
   "file.conflictReload": { en: "Reload", ru: "Перезагрузить" },
   "file.loading": { en: "Loading…", ru: "Загрузка…" },
+  "file.delete": { en: "Delete", ru: "Удалить" },
+  "file.deleteConfirm": { en: "Delete this file? This cannot be undone.", ru: "Удалить файл? Это действие необратимо." },
+  "file.deleted": { en: "File deleted", ru: "Файл удалён" },
+  "file.deleteFailed": { en: "Delete failed", ru: "Ошибка удаления" },
   "file.backToTop": { en: "Back to top", ru: "Вернуться наверх" },
   "file.copy": { en: "Copy", ru: "Копировать" },
 

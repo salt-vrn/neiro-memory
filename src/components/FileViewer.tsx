@@ -34,8 +34,8 @@ const sanitizeSchema = {
     src: ["http", "https"],
   },
 };
-import { fetchFile, saveFile } from "../api";
-import { PencilSimple, FloppyDisk, X, Check, CaretRight, ArrowUp, Copy, Warning, ArrowsClockwise } from "@phosphor-icons/react";
+import { fetchFile, saveFile, deleteFile } from "../api";
+import { PencilSimple, FloppyDisk, X, Check, CaretRight, ArrowUp, Copy, Warning, ArrowsClockwise, Trash } from "@phosphor-icons/react";
 
 import { useLocale } from "../hooks/useLocale";
 import { SensitiveText } from "./SensitiveMask";
@@ -219,9 +219,10 @@ interface FileViewerProps {
   refreshKey?: number;
   onNavigate?: (dir: string) => void;
   onOpenFile?: (path: string) => void;
+  onDeleted?: () => void;
 }
 
-export function FileViewer({ filePath, refreshKey, onNavigate, onOpenFile }: FileViewerProps) {
+export function FileViewer({ filePath, refreshKey, onNavigate, onOpenFile, onDeleted }: FileViewerProps) {
   const { t } = useLocale();
   const [content, setContent] = useState("");
   const [editContent, setEditContent] = useState("");
@@ -330,10 +331,20 @@ export function FileViewer({ filePath, refreshKey, onNavigate, onOpenFile }: Fil
   }, []);
 
   const handleEdit = () => {
-    setEditing(true);
-  };
+  setEditing(true);
+};
 
-  useEffect(() => {
+const handleDelete = async () => {
+  if (!window.confirm(t("file.deleteConfirm"))) return;
+  const result = await deleteFile(filePath);
+  if (result.ok) {
+    onDeleted?.();
+  } else {
+    alert(t("file.deleteFailed") + ": " + (result.error || ""));
+  }
+};
+
+useEffect(() => {
     const handler = (e: BeforeUnloadEvent) => {
       if (hasChanges) e.preventDefault();
     };
@@ -410,8 +421,11 @@ export function FileViewer({ filePath, refreshKey, onNavigate, onOpenFile }: Fil
                 <ArrowsClockwise className={`w-3.5 h-3.5 ${refreshing ? "animate-spin" : ""}`} />
               </button>
 
-              <button onClick={handleEdit} className="btn-secondary text-sm flex items-center gap-1">
-                <PencilSimple className="w-3.5 h-3.5" /> {t("file.edit")}
+             <button onClick={handleEdit} className="btn-secondary text-sm flex items-center gap-1">
+               <PencilSimple className="w-3.5 h-3.5" /> {t("file.edit")}
+             </button>
+              <button onClick={handleDelete} className="btn-secondary text-sm flex items-center gap-1" style={{ color: "var(--danger, #ef4444)" }} title={t("file.delete")}>
+                <Trash className="w-3.5 h-3.5" />
               </button>
             </>
           )}

@@ -414,6 +414,22 @@ app.put("/api/file", async (c) => {
   return c.json({ ok: true, mtime: stat.mtime });
 });
 
+// Delete a file
+app.delete("/api/file", async (c) => {
+  const { workspace } = getAgentFromQuery(c);
+  const filePath = c.req.query("path");
+  if (!filePath) return c.json({ error: "Missing path parameter" }, 400);
+  const full = safePath(filePath, workspace);
+  if (!full) return c.json({ error: "Invalid path" }, 400);
+  if (!fs.existsSync(full)) return c.json({ error: "File not found" }, 404);
+  try {
+    fs.unlinkSync(full);
+    return c.json({ ok: true });
+  } catch (e: any) {
+    return c.json({ error: e.message }, 500);
+  }
+});
+
 app.get("/api/resolve-wikilink", (c) => {
   const { workspace } = getAgentFromQuery(c);
   const link = (c.req.query("link") || "").trim();

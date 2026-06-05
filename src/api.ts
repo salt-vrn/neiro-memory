@@ -86,6 +86,14 @@ export async function saveFile(path: string, content: string, expectedMtime?: st
   return r.json();
 }
 
+export async function deleteFile(path: string): Promise<{ ok: boolean; error?: string }> {
+  const r = await fetch(buildUrl("/api/file", { path }), {
+    method: "DELETE",
+    headers: authHeaders(),
+  });
+  return r.json();
+}
+
 export async function fetchSystem(): Promise<SystemInfo> {
   const r = await fetch(buildUrl("/api/system"), { headers: authHeaders() });
   return r.json();
