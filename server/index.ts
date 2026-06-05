@@ -424,6 +424,7 @@ app.delete("/api/file", async (c) => {
   if (!fs.existsSync(full)) return c.json({ error: "File not found" }, 404);
   try {
     fs.unlinkSync(full);
+    broadcast({ type: "file-change", event: "unlink", path: filePath });
     return c.json({ ok: true });
   } catch (e: any) {
     return c.json({ error: e.message }, 500);

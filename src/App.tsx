@@ -485,7 +485,7 @@ export default function App() {
               <Dashboard onOpenFile={openFile} files={files} />
             </div>
           ) : (
-            <FileViewer filePath={activeFile} refreshKey={refreshKey} onOpenFile={openFile} onDeleted={() => { setActiveFile(""); setView("dashboard"); }} />
+            <FileViewer filePath={activeFile} refreshKey={refreshKey} onOpenFile={openFile} onDeleted={() => { setActiveFile(""); setView("dashboard"); loadFiles(); }} />
           )}
         </div>
       </main>
