@@ -1,0 +1,269 @@
+import { useState, useMemo, useEffect, useCallback } from "react";
+import type { FileNode } from "../api";
+import { CaretDown, CaretRight, Folder, FileText, Brain, Dna, Robot, User, Wrench, ListChecks, Heartbeat, IdentificationCard, Gear, Calendar, Clock, CaretUp } from "@phosphor-icons/react";
+
+
+/** Well-known bot config files shown in the top section */
+const BOT_FILES = new Set([
+  "AGENTS.md", "SOUL.md", "MEMORY.md", "USER.md", "TOOLS.md",
+  "TODO.md", "HEARTBEAT.md", "IDENTITY.md", "BOOTSTRAP.md",
+]);
+
+function isBotFile(name: string): boolean {
+  return BOT_FILES.has(name);
+}
+
+/** Check if a path is a daily note (memory/YYYY-MM-DD*.md) */
+function isDailyNote(path: string): boolean {
+  return /^memory\/\d{4}-\d{2}-\d{2}.*\.md$/.test(path);
+}
+
+/** Get display label for daily note */
+function getDailyNoteLabel(path: string): { label: string; isToday: boolean; isYesterday: boolean } {
+  const match = path.match(/memory\/(\d{4}-\d{2}-\d{2})/);
+  if (!match) return { label: path, isToday: false, isYesterday: false };
+  
+  const dateStr = match[1];
+  const today = new Date().toISOString().slice(0, 10);
+  const yesterday = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
+  
+  if (dateStr === today) return { label: "Today", isToday: true, isYesterday: false };
+  if (dateStr === yesterday) return { label: "Yesterday", isYesterday: true, isToday: false };
+  
+  // Show date in a readable format for older notes
+  const date = new Date(dateStr);
+  const options: Intl.DateTimeFormatOptions = { month: "short", day: "numeric" };
+  return { label: date.toLocaleDateString("en-US", options), isToday: false, isYesterday: false };
+}
+
+/** Local storage key for collapsed state */
+const COLLAPSED_KEY = "memory-viewer-collapsed";
+const SECTIONS_KEY = "memory-viewer-sections";
+
+interface SectionState {
+  coreFiles: boolean;
+  files: boolean;
+}
+
+function loadCollapsedState(): Set<string> {
+  try {
+    const stored = localStorage.getItem(COLLAPSED_KEY);
+    return stored ? new Set(JSON.parse(stored)) : new Set();
+  } catch {
+    return new Set();
+  }
+}
+
+function saveCollapsedState(collapsed: Set<string>) {
+  try {
+    localStorage.setItem(COLLAPSED_KEY, JSON.stringify([...collapsed]));
+  } catch {
+    // Ignore storage errors
+  }
+}
+
+function loadSectionState(): SectionState {
+  try {
+    const stored = localStorage.getItem(SECTIONS_KEY);
+    return stored ? JSON.parse(stored) : { coreFiles: false, files: true };
+  } catch {
+    return { coreFiles: false, files: true };
+  }
+}
+
+function saveSectionState(state: SectionState) {
+  try {
+    localStorage.setItem(SECTIONS_KEY, JSON.stringify(state));
+  } catch {
+    // Ignore storage errors
+  }
+}
+
+interface FileTreeProps {
+  nodes: FileNode[];
+  activeFile: string;
+  onSelect: (path: string) => void;
+}
+
+export function FileTree({ nodes, activeFile, onSelect }: FileTreeProps) {
+  const t = (s: string) => s;
+  const [collapsed, setCollapsed] = useState<Set<string>>(() => loadCollapsedState());
+  const [sections, setSections] = useState<SectionState>(() => loadSectionState());
+  
+  // Persist collapsed state
+  useEffect(() => {
+    saveCollapsedState(collapsed);
+  }, [collapsed]);
+  
+  // Persist section state
+  useEffect(() => {
+    saveSectionState(sections);
+  }, [sections]);
+  
+  const toggleSection = (key: keyof SectionState) => {
+    setSections(prev => ({ ...prev, [key]: !prev[key] }));
+  };
+
+  const toggleCollapsed = useCallback((path: string) => {
+    setCollapsed(prev => {
+      const next = new Set(prev);
+      if (next.has(path)) {
+        next.delete(path);
+      } else {
+        next.add(path);
+      }
+      return next;
+    });
+  }, []);
+
+  const { botFiles, otherNodes } = useMemo(() => {
+    const bot: FileNode[] = [];
+    const other: FileNode[] = [];
+    
+    for (const node of nodes) {
+      if (node.type === "file" && isBotFile(node.name)) {
+        bot.push(node);
+      } else {
+        other.push(node);
+        // Extract bot files from one level of nesting (e.g. memories/MEMORY.md)
+        // and filter them out of the directory children to avoid duplication
+        if (node.type === "dir" && node.children) {
+          const filteredChildren = node.children.filter(
+            (child) => !(child.type === "file" && isBotFile(child.name))
+          );
+          for (const child of node.children) {
+            if (child.type === "file" && isBotFile(child.name)) {
+              bot.push(child);
+            }
+          }
+          // Update the node's children to exclude extracted files
+          if (filteredChildren.length !== node.children.length) {
+            const idx = other.length - 1;
+            other[idx] = { ...node, children: filteredChildren };
+          }
+        }
+      }
+    }
+    
+    const order = [...BOT_FILES];
+    bot.sort((a, b) => order.indexOf(a.name) - order.indexOf(b.name));
+    other.sort((a, b) => {
+      if (a.type === "dir" && b.type !== "dir") return -1;
+      if (a.type !== "dir" && b.type === "dir") return 1;
+      return a.name.localeCompare(b.name);
+    });
+    
+    return { botFiles: bot, otherNodes: other };
+  }, [nodes]);
+
+  return (
+    <nav className="text-sm" aria-label="File tree">
+      {/* Bot Config Files - Collapsible */}
+      {botFiles.length > 0 && (
+        <div className="mb-2">
+          <button
+            onClick={() => toggleSection("coreFiles")}
+            className="w-full flex items-center justify-between px-2 py-1.5 text-[10px] font-semibold uppercase tracking-wider transition-colors hover:text-blue-400"
+            style={{ color: "var(--text-muted)" }}
+          >
+            {t("sidebar.coreFiles") || "Core Files"}
+            {sections.coreFiles ? <CaretDown className="w-3 h-3" /> : <CaretRight className="w-3 h-3" />}
+          </button>
+          {sections.coreFiles && (
+            <div className="flex flex-col">
+              {botFiles.map((node) => (
+                <TreeNode key={node.path} node={node} activeFile={activeFile} onSelect={onSelect} depth={0} collapsed={collapsed} onToggle={toggleCollapsed} />
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+      
+      {/* Files - Collapsible */}
+      {otherNodes.length > 0 && (
+        <div>
+          <button
+            onClick={() => toggleSection("files")}
+            className="w-full flex items-center justify-between px-2 py-1.5 text-[10px] font-semibold uppercase tracking-wider transition-colors hover:text-blue-400"
+            style={{ color: "var(--text-muted)" }}
+          >
+            {t("sidebar.files")}
+            {sections.files ? <CaretDown className="w-3 h-3" /> : <CaretRight className="w-3 h-3" />}
+          </button>
+          {sections.files && (
+            <div className="flex flex-col">
+              {otherNodes.map((node) => (
+                <TreeNode key={node.path} node={node} activeFile={activeFile} onSelect={onSelect} depth={0} collapsed={collapsed} onToggle={toggleCollapsed} />
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+    </nav>
+  );
+}
+
+function TreeNode({ node, activeFile, onSelect, depth, collapsed, onToggle }: {
+  node: FileNode;
+  activeFile: string;
+  onSelect: (path: string) => void;
+  depth: number;
+  collapsed: Set<string>;
+  onToggle: (path: string) => void;
+}) {
+  const indent = depth * 12 + 8;
+  const isCollapsed = collapsed.has(node.path);
+  // Default: all directories are collapsed unless explicitly expanded
+  const isOpen = !collapsed.has(node.path);
+
+  if (node.type === "dir") {
+    return (
+      <div>
+        <button
+          onClick={() => onToggle(node.path)}
+          className="sidebar-item flex items-center gap-1.5 w-full py-1.5 rounded-md"
+          style={{ paddingLeft: `${indent}px` }}
+        >
+          {!isCollapsed ? <CaretDown className="w-3 h-3 opacity-60 shrink-0" /> : <CaretRight className="w-3 h-3 opacity-60 shrink-0" />}
+          <Folder className={`w-3.5 h-3.5 shrink-0 ${!isCollapsed ? "text-amber-400" : "text-amber-400/60"}`} />
+          <span className="truncate">{node.name}</span>
+          {node.children && (
+            <span className="text-[10px] ml-auto mr-2" style={{ color: "var(--text-faint)" }}>{node.children.length}</span>
+          )}
+        </button>
+        {!isCollapsed && node.children?.slice().sort((a, b) => {
+          if (a.type === "dir" && b.type !== "dir") return -1;
+          if (a.type !== "dir" && b.type === "dir") return 1;
+          return a.name.localeCompare(b.name);
+        }).map((child) => (
+          <TreeNode key={child.path} node={child} activeFile={activeFile} onSelect={onSelect} depth={depth + 1} collapsed={collapsed} onToggle={onToggle} />
+        ))}
+      </div>
+    );
+  }
+
+  const isActive = activeFile === node.path;
+  return (
+    <button
+      onClick={() => onSelect(node.path)}
+      className={`flex items-center gap-1.5 w-full py-1.5 rounded-md transition-colors ${
+        isActive ? "sidebar-item-active font-medium" : "sidebar-item"
+      }`}
+      style={{ paddingLeft: `${indent}px` }}
+    >
+      <span className="opacity-70 shrink-0">
+        {node.name === "MEMORY.md" ? <Brain className="w-3.5 h-3.5 text-purple-400" /> :
+         node.name === "SOUL.md" ? <Dna className="w-3.5 h-3.5 text-emerald-400" /> :
+         node.name === "AGENTS.md" ? <Robot className="w-3.5 h-3.5 text-blue-400" /> :
+         node.name === "USER.md" ? <User className="w-3.5 h-3.5 text-amber-400" /> :
+         node.name === "TOOLS.md" ? <Wrench className="w-3.5 h-3.5 text-gray-400" /> :
+         node.name === "TODO.md" ? <ListChecks className="w-3.5 h-3.5 text-orange-400" /> :
+         node.name === "HEARTBEAT.md" ? <Heartbeat className="w-3.5 h-3.5 text-red-400" /> :
+         node.name === "IDENTITY.md" ? <IdentificationCard className="w-3.5 h-3.5 text-cyan-400" /> :
+         node.name === "BOOTSTRAP.md" ? <Gear className="w-3.5 h-3.5 text-gray-400" /> :
+         <FileText className="w-3.5 h-3.5 text-gray-500" />}
+      </span>
+      <span className="truncate">{node.name}</span>
+    </button>
+  );
+}

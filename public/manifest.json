@@ -1,0 +1,21 @@
+{
+  "name": "Memory Viewer",
+  "short_name": "Memory",
+  "description": "Browse and edit your AI agent's memory files",
+  "start_url": "/memory-viewer/",
+  "display": "standalone",
+  "background_color": "#030712",
+  "theme_color": "#030712",
+  "icons": [
+    {
+      "src": "/memory-viewer/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/memory-viewer/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}

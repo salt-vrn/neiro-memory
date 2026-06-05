@@ -1,0 +1,80 @@
+{
+  "name": "@silicondawn/memory-viewer",
+  "version": "1.2.0",
+  "description": "A beautiful web-based viewer for OpenClaw agent memory files. Browse, search, and edit Markdown files with a dark-themed UI.",
+  "type": "module",
+  "license": "MIT",
+  "author": "Silicon Dawn",
+  "homepage": "https://github.com/silicondawn/memory-viewer",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/silicondawn/memory-viewer"
+  },
+  "bugs": {
+    "url": "https://github.com/silicondawn/memory-viewer/issues"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "keywords": [
+    "openclaw",
+    "memory",
+    "markdown",
+    "viewer",
+    "agent"
+  ],
+  "scripts": {
+    "dev": "concurrently -n api,web -c blue,green \"npm run server:dev\" \"vite\"",
+    "build": "vite build",
+    "start": "node server/dist/index.js",
+    "server:dev": "tsx watch server/index.ts",
+    "server:build": "tsx server/index.ts",
+    "preview": "npm run build && npm start",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "dependencies": {
+    "@codemirror/commands": "^6.10.1",
+    "@codemirror/lang-markdown": "^6.5.0",
+    "@codemirror/language": "^6.12.1",
+    "@codemirror/language-data": "^6.5.2",
+    "@codemirror/state": "^6.5.4",
+    "@codemirror/theme-one-dark": "^6.1.3",
+    "@codemirror/view": "^6.39.12",
+    "@hono/node-server": "^1.19.9",
+    "@hono/node-ws": "^1.3.0",
+    "@phosphor-icons/react": "^2.1.10",
+    "bcryptjs": "^3.0.3",
+    "chokidar": "^4.0.3",
+    "hono": "^4.11.7",
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0",
+    "react-markdown": "^10.1.0",
+    "rehype-raw": "^7.0.0",
+    "remark-frontmatter": "^5.0.0",
+    "remark-gfm": "^4.0.1",
+    "shiki": "^3.22.0",
+    "ws": "^8.18.2",
+    "yaml": "^2.9.0"
+  },
+  "devDependencies": {
+    "@tailwindcss/vite": "^4.1.18",
+    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/react": "^16.3.2",
+    "@testing-library/user-event": "^14.6.1",
+    "@types/bcryptjs": "^2.4.6",
+    "@types/node": "^24.10.9",
+    "@types/react": "^19.2.5",
+    "@types/react-dom": "^19.2.3",
+    "@types/ws": "^8.18.1",
+    "@vitejs/plugin-react": "^5.1.1",
+    "concurrently": "^9.2.1",
+    "jsdom": "^28.0.0",
+    "tailwindcss": "^4.1.18",
+    "tsx": "^4.21.0",
+    "typescript": "~5.9.3",
+    "vite": "^7.2.4",
+    "vitest": "^4.0.18"
+  }
+}
