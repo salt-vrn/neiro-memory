@@ -72,7 +72,7 @@ export { app }; // Export for testing
 const { injectWebSocket, upgradeWebSocket } = createNodeWebSocket({ app });
 
 app.use("*", compress());
-app.use("*", cors({ origin: "*" }));
+app.use("*", cors({ origin: ["http://localhost:8901", "https://zolotarev215.neirohost.ru"] }));
 
 // Auth middleware — protects all routes when AUTH_HASH is set
 app.use("*", async (c, next) => {
@@ -267,7 +267,7 @@ function getAgents(): AgentInfo[] {
   }
 
   const agents: AgentInfo[] = [
-    ...discoverHermesDefault() ? [discoverHermesDefault()!] : [],
+    ...(() => { const d = discoverHermesDefault(); return d ? [d] : []; })(),
     ...discoverHermesProfiles(),
     ...discoverOpenClawAgents(),
   ];
@@ -747,8 +747,10 @@ app.get("/api/agent/status", async (c) => {
 });
 
 // ---------------------------------------------------------------------------
-// Gateway Chat Proxy
+// WebSocket — Live File Change Notifications
 // ---------------------------------------------------------------------------
+
+const wsClients = new Set<WSContext>();
 
 app.get("/ws", upgradeWebSocket(() => ({
   onOpen(_event, ws) {
@@ -783,8 +785,9 @@ watcher.on("all", (event, filePath) => {
 app.get("/workspace-assets/*", async (c) => {
   const { workspace } = getAgentFromQuery(c);
   const assetPath = c.req.path.replace("/workspace-assets/", "");
-  const fullPath = path.join(workspace, "assets", assetPath);
-  if (!fullPath.startsWith(path.join(workspace, "assets"))) {
+  const assetsDir = path.resolve(workspace, "assets");
+  const fullPath = path.resolve(assetsDir, assetPath);
+  if (!fullPath.startsWith(assetsDir + path.sep) && fullPath !== assetsDir) {
     return c.json({ error: "Invalid path" }, 403);
   }
   if (!fs.existsSync(fullPath)) {
@@ -927,7 +930,6 @@ app.post("/api/crons/:id/toggle", async (c) => {
     const port = config.gateway?.port || 18789;
     const token = config.gateway?.auth?.token || "";
 
-    const method = enabled ? "cron.update" : "cron.update";
     const resp = await fetch(`http://127.0.0.1:${port}/rpc`, {
       method: "POST",
       headers: {
@@ -960,6 +962,9 @@ app.post("/api/crons/:id/toggle", async (c) => {
 
 app.post("/api/crons/:id/run", async (c) => {
   const { id } = c.req.param();
+  if (!id || !/^[a-zA-Z0-9_-]+$/.test(id)) {
+    return c.json({ error: "Invalid cron job id" }, 400);
+  }
   const { agentId, workspace } = getAgentFromQuery(c);
   const isHermes = agentId.startsWith("hermes:");
 
@@ -1247,7 +1252,7 @@ if (fs.existsSync(STATIC_DIR)) {
 // Start
 // ---------------------------------------------------------------------------
 if (process.env.NODE_ENV !== 'test') {
-  const server = serve({ fetch: app.fetch, port: PORT, hostname: "0.0.0.0" }, (info) => {
+  const server = serve({ fetch: app.fetch, port: PORT, hostname: "127.0.0.1" }, (info) => {
     console.log(`📝 Memory Viewer running at http://localhost:${info.port}`);
     console.log(`📂 Default Workspace: ${DEFAULT_WORKSPACE}`);
   });

@@ -106,7 +106,7 @@ Frontend shows agent selector when `agents.length > 1`. All API endpoints accept
 
 - **DNS flaky** in container: `echo "nameserver 8.8.8.8" > /etc/resolv.conf`
 - **Mobile browser cache** after deploy: long-press reload → "Clear cache and reload"
-- **Auth hash corruption** after restart: verify with `curl -s -X POST http://localhost:8901/api/login -H 'Content-Type: application/json' -d '{"password":"Yybe-FkF"}'`
+- **Auth hash corruption** after restart: verify with `curl -s -X POST http://localhost:8901/api/login -H 'Content-Type: application/json' -d '{"password":"YOUR_PASSWORD"}'`
 - **execSync + ESM**: `require()` doesn't work in function bodies under tsx/ESM — use top-level imports
 - **Branding**: "Neiro Memory" in `index.html`, `LoginPage.tsx`, `App.tsx`
 - **vite build blocked** by terminal tool detecting it as long-lived process — use `background=true` + `process wait`

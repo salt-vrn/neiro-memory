@@ -24,7 +24,11 @@ export function useWebSocket(onMessage: MessageHandler, remoteBaseUrl = "") {
       const basePath = (import.meta.env.BASE_URL || '/').replace(/\/$/, '');
       wsUrl = `${proto}//${location.host}${basePath}/ws`;
     }
-    const ws = new WebSocket(wsUrl);
+
+    // Pass auth token for WebSocket authentication
+    const token = localStorage.getItem("mv_token");
+    const sep = wsUrl.includes("?") ? "&" : "?";
+    const ws = new WebSocket(token ? `${wsUrl}${sep}token=${token}` : wsUrl);
 
     ws.onmessage = (e) => {
       try {

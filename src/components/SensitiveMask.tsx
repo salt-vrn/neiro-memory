@@ -1,3 +1,5 @@
+import { useSensitive } from "../hooks/useSensitive";
+
 /**
  * Patterns that match API tokens, keys, secrets, passwords, etc.
  * Each match will be blurred when sensitive mode is on.
@@ -56,7 +58,9 @@ function maskSensitiveText(text: string, hidden: boolean): (string | JSX.Element
   return result;
 }
 
+
 export function SensitiveText({ children }: { children: string }) {
   if (typeof children !== "string") return <>{children}</>;
-  return <>{maskSensitiveText(children, false)}</>;
+  const { hidden } = useSensitive();
+  return <>{maskSensitiveText(children, hidden)}</>;
 }

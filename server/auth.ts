@@ -166,8 +166,8 @@ export async function authMiddleware(c: Context, next: Next) {
     return next();
   }
 
-  // For API requests, return 401 JSON
-  if (pathname.startsWith("/api/")) {
+  // For API and WebSocket requests, return 401 JSON
+  if (pathname.startsWith("/api/") || pathname === "/ws") {
     return c.json({ error: "Unauthorized" }, 401);
   }
 

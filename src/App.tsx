@@ -91,7 +91,7 @@ export default function App() {
     fetch(`${basePath}/api/auth/status`, { headers })
       .then((r) => r.json())
       .then((data) => setAuthenticated(data.authenticated))
-      .catch(() => setAuthenticated(true));
+      .catch(() => setAuthenticated(false));
   }, []);
 
   // Sync hash → state on load and popstate
