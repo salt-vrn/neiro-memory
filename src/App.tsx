@@ -5,7 +5,6 @@ import { FileViewer } from "./components/FileViewer";
 import { Dashboard } from "./components/Dashboard";
 import { SearchPanel } from "./components/SearchPanel";
 import { LoginPage } from "./components/LoginPage";
-import { Changelog } from "./components/Changelog";
 import { SkillsPage } from "./components/SkillsPage";
 import { useWebSocket } from "./hooks/useWebSocket";
 import { useTheme } from "./hooks/useTheme";
@@ -22,7 +21,7 @@ export default function App() {
   const [files, setFiles] = useState<FileNode[]>([]);
   const [skills, setSkills] = useState<SkillInfo[]>([]);
   const [activeFile, setActiveFile] = useState("");
-  const [view, setView] = useState<"dashboard" | "file" | "changelog" | "agent-status" | "skills" | "tags" | "cron">("dashboard");
+  const [view, setView] = useState<"dashboard" | "file" | "agent-status" | "skills" | "tags" | "cron">("dashboard");
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
@@ -108,7 +107,7 @@ export default function App() {
         }
       }
       if (hash === "#/agent-status") { setView("agent-status"); return; }
-      if (hash === "#/changelog") { setView("changelog"); return; }
+
       if (hash === "#/skills") { setView("skills"); return; }
       if (hash === "#/tags") { setView("tags"); return; }
       if (hash === "#/cron") { setView("cron"); return; }
@@ -454,7 +453,7 @@ export default function App() {
             <List className="w-6 h-6" />
           </button>
           <span className="text-sm font-medium truncate">
-            {view === "file" ? activeFile : view === "changelog" ? t("changelog.title") : view === "agent-status" ? t("sidebar.agentConfig") : view === "tags" ? t("tags.title") : view === "cron" ? t("cron.title") : t("dashboard.title")}
+            {view === "file" ? activeFile : view === "agent-status" ? t("sidebar.agentConfig") : view === "tags" ? t("tags.title") : view === "cron" ? t("cron.title") : t("dashboard.title")}
           </span>
           <button onClick={() => window.location.reload()} className="ml-auto p-1" style={{ color: "var(--text-muted)" }} title="Refresh">
             <ArrowsClockwise className="w-5 h-5" />
@@ -471,9 +470,7 @@ export default function App() {
         </div>
 
         <div className="flex-1 overflow-hidden">
-          {view === "changelog" ? (
-            <Changelog onBack={goHome} />
-          ) : view === "agent-status" ? (
+          {view === "agent-status" ? (
             <AgentStatusPage />
           ) : view === "skills" ? (
             <SkillsPage skills={skills} onOpenFile={openFile} />
