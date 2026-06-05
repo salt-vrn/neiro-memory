@@ -31,8 +31,21 @@ npm run build
 | `ALLOW_NO_AUTH` | No | — | Set `1` to allow unauthenticated access (dev only) |
 | `TRUST_PROXY` | No | — | Set `1` to trust X-Forwarded-For header |
 | `CHOKIDAR_USEPOLLING` | No | — | Set `1` if hitting EMFILE limits |
+| `BASE_PATH` | No | `/` | Build-time only. Set URL prefix for reverse proxy (e.g. `/memory-viewer/`) |
 
 *Without `AUTH_HASH` (or `~/.hermes/.memory-viewer-auth` file), all `/api/*` and `/ws` return 503.
+
+### Build
+
+Default (direct access at root):
+```bash
+npm run build
+```
+
+Behind reverse proxy with path prefix:
+```bash
+BASE_PATH=/memory-viewer/ npm run build
+```
 
 ### Generate Password
 

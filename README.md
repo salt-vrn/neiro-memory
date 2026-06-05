@@ -30,11 +30,26 @@ Set password and run:
 # Generate password hash
 node -e "console.log(require('bcryptjs').hashSync('YOUR_PASSWORD', 12))"
 
-# Run server
+# Run server (direct access)
 AUTH_HASH='your-hash-here' PORT=8901 HOST=0.0.0.0 npx tsx server/index.ts
 ```
 
 Open `http://your-ip:8901` in browser.
+
+## Behind Reverse Proxy
+
+If deploying behind nginx with a path prefix:
+
+```bash
+BASE_PATH=/memory-viewer/ npm run build
+```
+
+Nginx config:
+```nginx
+location /memory-viewer/ {
+    proxy_pass http://127.0.0.1:8901/;
+}
+```
 
 See [PROJECT.md](./PROJECT.md) for architecture, env vars, systemd unit, and agent collaboration guide.
 
