@@ -5,13 +5,13 @@
   "type": "module",
   "license": "MIT",
   "author": "Neiro",
-  "homepage": "https://github.com/salt-vrn/memory-viewer",
+  "homepage": "https://github.com/salt-vrn/neiro-memory",
   "repository": {
     "type": "git",
-    "url": "https://github.com/salt-vrn/memory-viewer"
+    "url": "https://github.com/salt-vrn/neiro-memory"
   },
   "bugs": {
-    "url": "https://github.com/salt-vrn/memory-viewer/issues"
+    "url": "https://github.com/salt-vrn/neiro-memory/issues"
   },
   "engines": {
     "node": ">=18"
