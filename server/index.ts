@@ -1180,6 +1180,11 @@ app.get("/api/system-crons", (c) => {
 // ---------------------------------------------------------------------------
 // Static file serving
 // ---------------------------------------------------------------------------
+// robots.txt — prevent search engine indexing
+app.get("/robots.txt", (c) => {
+  return c.text("User-agent: *\nDisallow: /\n");
+});
+
 if (fs.existsSync(STATIC_DIR)) {
   app.use("/assets/*", serveStatic({
     root: STATIC_DIR,
