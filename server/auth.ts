@@ -17,12 +17,33 @@ const AUTH_FILE = path.join(os.homedir(), ".hermes", ".memory-viewer-auth");
 const SESSION_TTL = 24 * 60 * 60 * 1000; // 24 hours
 const MAX_ATTEMPTS = 3;
 const BAN_WINDOW = 5 * 60 * 1000; // 5 minutes
+const GLOBAL_MAX_ATTEMPTS = 30; // Global limit per minute
+const GLOBAL_WINDOW = 60 * 1000; // 1 minute
+const TRUST_PROXY = process.env.TRUST_PROXY === "1";
 
 // In-memory session store: token -> expiry timestamp
 const sessions = new Map<string, number>();
 
+// Global rate limit: { count, windowStart }
+const globalAttempts = { count: 0, windowStart: 0 };
+
 // Rate limiting: IP -> { attempts, firstAttempt, bannedUntil }
 const loginAttempts = new Map<string, { attempts: number; firstAttempt: number; bannedUntil: number }>();
+
+function getClientIp(c: Context): string {
+  if (TRUST_PROXY) {
+    // Take rightmost IP from XFF (the one our proxy added)
+    const xff = c.req.header("x-forwarded-for");
+    if (xff) {
+      const ips = xff.split(",").map(s => s.trim());
+      return ips[ips.length - 1] || "unknown";
+    }
+    return c.req.header("x-real-ip") || "unknown";
+  }
+  // No proxy trust — use actual connection IP
+  const incoming = (c.env as any)?.incoming;
+  return incoming?.socket?.remoteAddress || incoming?.remoteAddress || "unknown";
+}
 
 function checkRateLimit(ip: string): { blocked: boolean; retryAfter?: number } {
   const entry = loginAttempts.get(ip);
@@ -58,6 +79,25 @@ function recordFailure(ip: string) {
   if (entry.attempts >= MAX_ATTEMPTS) {
     entry.bannedUntil = Date.now() + BAN_WINDOW;
   }
+}
+
+function checkGlobalLimit(): { blocked: boolean; retryAfter?: number } {
+  if (Date.now() - globalAttempts.windowStart > GLOBAL_WINDOW) {
+    globalAttempts.count = 0;
+    globalAttempts.windowStart = Date.now();
+  }
+  if (globalAttempts.count >= GLOBAL_MAX_ATTEMPTS) {
+    return { blocked: true, retryAfter: Math.ceil((globalAttempts.windowStart + GLOBAL_WINDOW - Date.now()) / 1000) };
+  }
+  return { blocked: false };
+}
+
+function recordGlobalFailure() {
+  if (Date.now() - globalAttempts.windowStart > GLOBAL_WINDOW) {
+    globalAttempts.count = 0;
+    globalAttempts.windowStart = Date.now();
+  }
+  globalAttempts.count++;
 }
 
 function clearAttempts(ip: string) {
@@ -130,9 +170,33 @@ function extractToken(c: Context): string | undefined {
 export async function authMiddleware(c: Context, next: Next) {
   const authHash = getAuthHash();
 
-  // If no AUTH_HASH set, skip auth entirely (open mode)
+  // If no AUTH_HASH set — fail-closed unless explicitly opted in
   if (!authHash) {
-    return next();
+    if (process.env.ALLOW_NO_AUTH === "1") {
+      return next(); // Dev mode: explicit opt-in
+    }
+    // Allow static assets and login/status so UI can show message
+    const url = new URL(c.req.url);
+    const pathname = url.pathname;
+    if (
+      pathname === "/api/login" ||
+      pathname === "/api/auth/status" ||
+      pathname.startsWith("/assets/") ||
+      pathname.endsWith(".js") ||
+      pathname.endsWith(".css") ||
+      pathname.endsWith(".png") ||
+      pathname.endsWith(".svg") ||
+      pathname.endsWith(".ico") ||
+      pathname.endsWith(".woff") ||
+      pathname.endsWith(".woff2")
+    ) {
+      return next();
+    }
+    // Serve SPA for page requests
+    if (!pathname.startsWith("/api/") && pathname !== "/ws") {
+      return next();
+    }
+    return c.json({ error: "Auth not configured. Set AUTH_HASH or ALLOW_NO_AUTH=1" }, 503);
   }
 
   const url = new URL(c.req.url);
@@ -185,10 +249,14 @@ export async function handleLogin(c: Context) {
   }
 
   // Rate limiting
-  const ip = c.req.header("x-forwarded-for")?.split(",")[0]?.trim() || c.req.header("x-real-ip") || "unknown";
+  const ip = getClientIp(c);
   const limit = checkRateLimit(ip);
   if (limit.blocked) {
     return c.json({ error: `Too many attempts. Try again in ${limit.retryAfter}s` }, 429);
+  }
+  const globalLimit = checkGlobalLimit();
+  if (globalLimit.blocked) {
+    return c.json({ error: `Too many attempts. Try again in ${globalLimit.retryAfter}s` }, 429);
   }
 
   const body = await c.req.json<{ password: string }>();
@@ -196,9 +264,10 @@ export async function handleLogin(c: Context) {
     return c.json({ error: "Password required" }, 400);
   }
 
-  const valid = bcrypt.compareSync(body.password, authHash);
+  const valid = await bcrypt.compare(body.password, authHash);
   if (!valid) {
     recordFailure(ip);
+    recordGlobalFailure();
     return c.json({ error: "Invalid password" }, 401);
   }
 
@@ -224,7 +293,7 @@ export async function handleLogout(c: Context) {
 export async function handleAuthStatus(c: Context) {
   const authHash = getAuthHash();
   if (!authHash) {
-    return c.json({ authRequired: false, authenticated: true });
+    return c.json({ authRequired: false, authenticated: false, configured: false });
   }
 
   const token = extractToken(c);
@@ -253,13 +322,13 @@ export async function handleChangePassword(c: Context) {
   }
 
   // Verify current password
-  const valid = bcrypt.compareSync(body.currentPassword, authHash);
+  const valid = await bcrypt.compare(body.currentPassword, authHash);
   if (!valid) {
     return c.json({ error: "Current password is incorrect" }, 401);
   }
 
   // Hash new password and write to file
-  const newHash = bcrypt.hashSync(body.newPassword, 12);
+  const newHash = await bcrypt.hash(body.newPassword, 12);
   try {
     fs.writeFileSync(AUTH_FILE, newHash, { encoding: "utf-8", mode: 0o600 });
   } catch (e: any) {

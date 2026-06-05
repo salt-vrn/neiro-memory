@@ -54,7 +54,6 @@ interface AgentInfo {
   name: string;
   type: "hermes" | "openclaw";
   workspace: string;
-  extraPaths: string[];  // cwd paths outside main workspace
   emoji: string;
   skills?: string[];
 }
@@ -67,7 +66,7 @@ const PORT = Number(process.env.PORT) || 3001;
 const DEFAULT_WORKSPACE = process.env.WORKSPACE_DIR || path.join(os.homedir(), "clawd");
 const CORS_ORIGINS = process.env.CORS_ORIGINS
   ? process.env.CORS_ORIGINS.split(",").map(s => s.trim())
-  : ["http://localhost:" + PORT, "https://zolotarev215.neirohost.ru"];
+  : ["http://localhost:" + PORT];
 const STATIC_DIR = process.env.STATIC_DIR || path.join(import.meta.dirname, "..", "dist");
 
 const app = new Hono();
@@ -80,9 +79,6 @@ app.use("*", cors({ origin: CORS_ORIGINS }));
 // Auth middleware — protects all routes when AUTH_HASH is set
 app.use("*", async (c, next) => {
   const url = new URL(c.req.url);
-  if (process.env.DEBUG_AUTH) {
-    console.log(`[AUTH] ${c.req.method} ${url.pathname} | cookie: ${c.req.header('cookie') || 'NONE'}`);
-  }
   return authMiddleware(c, next);
 });
 
@@ -101,56 +97,17 @@ const OPENCLAW_HOME = path.join(HOME, ".openclaw");
 const OPENCLAW_CONFIG_PATH = path.join(OPENCLAW_HOME, "openclaw.json");
 
 // Extract terminal.cwd from a Hermes config.yaml (simple regex, no YAML dep)
-function extractCwdFromConfig(configPath: string): string | null {
-  try {
-    const raw = fs.readFileSync(configPath, "utf-8");
-    // Match "cwd: <value>" under the terminal section
-    const m = raw.match(/^(?:  |\t)*terminal:\s*\n(?:[ \t]+.+\n)*?[ \t]+cwd:\s*["']?([^"'\n#]+)["']?/m);
-    if (m && m[1]) {
-      const val = m[1].trim();
-      if (val && val !== "." && val !== "auto" && val !== "cwd") {
-        return val;
-      }
-    }
-  } catch {}
-  return null;
-}
-
-// Resolve cwd to absolute path
-function resolveCwd(cwd: string): string {
-  if (cwd.startsWith("~")) return path.join(HOME, cwd.slice(1));
-  if (path.isAbsolute(cwd)) return cwd;
-  return path.resolve(HOME, cwd);
-}
-
-// Check if a path is inside another
-function isInside(child: string, parent: string): boolean {
-  const rel = path.relative(parent, child);
-  return rel === "" || (!rel.startsWith("..") && !path.isAbsolute(rel));
-}
 
 // Discover Hermes default agent
 function discoverHermesDefault(): AgentInfo | null {
   const hermesDir = HERMES_HOME;
   if (!fs.existsSync(hermesDir)) return null;
 
-  const configPath = path.join(hermesDir, "config.yaml");
-  const cwd = extractCwdFromConfig(configPath);
-  const extraPaths: string[] = [];
-
-  if (cwd) {
-    const resolved = resolveCwd(cwd);
-    if (!isInside(resolved, hermesDir)) {
-      extraPaths.push(resolved);
-    }
-  }
-
   return {
     id: "hermes:default",
     name: "Hermes (default)",
     type: "hermes",
     workspace: hermesDir,
-    extraPaths,
     emoji: "🧠",
   };
 }
@@ -166,23 +123,11 @@ function discoverHermesProfiles(): AgentInfo[] {
     for (const entry of entries) {
       if (!entry.isDirectory()) continue;
       const profileDir = path.join(profilesDir, entry.name);
-      const configPath = path.join(profileDir, "config.yaml");
-      const cwd = extractCwdFromConfig(configPath);
-      const extraPaths: string[] = [];
-
-      if (cwd) {
-        const resolved = resolveCwd(cwd);
-        if (!isInside(resolved, profileDir)) {
-          extraPaths.push(resolved);
-        }
-      }
-
       agents.push({
         id: `hermes:${entry.name}`,
         name: `Hermes (${entry.name})`,
         type: "hermes",
         workspace: profileDir,
-        extraPaths,
         emoji: "🧠",
       });
     }
@@ -211,7 +156,6 @@ function discoverOpenClawAgents(): AgentInfo[] {
             name: agent.name || agent.id,
             type: "openclaw",
             workspace: getAgentWorkspace(agent, defaults),
-            extraPaths: [],
             emoji: agent.identity?.emoji || "🐾",
             skills: agent.skills || undefined,
           });
@@ -236,7 +180,6 @@ function discoverOpenClawAgents(): AgentInfo[] {
           name: entry.name,
           type: "openclaw",
           workspace: path.join(agentsDir, entry.name),
-          extraPaths: [],
           emoji: "🐾",
         });
       }
@@ -282,7 +225,6 @@ function getAgents(): AgentInfo[] {
       name: "Default",
       type: "hermes",
       workspace: DEFAULT_WORKSPACE,
-      extraPaths: [],
       emoji: "🤖",
     });
   }

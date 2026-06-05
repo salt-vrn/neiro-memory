@@ -21,11 +21,16 @@ npm run build        # Production build → dist/
 Production server:
 ```bash
 AUTH_HASH='<bcrypt hash>' \
+ALLOW_NO_AUTH=1 \           # optional: allow unauthenticated access (dev only!)
+TRUST_PROXY=1 \             # optional: trust X-Forwarded-For for rate limiting
+CORS_ORIGINS='...' \        # optional: comma-separated allowed origins (default: localhost)
 CHOKIDAR_USEPOLLING=1 \
 WORKSPACE_DIR=/path/to/agent/workspace \
 PORT=8901 \
 npx tsx server/index.ts
 ```
+
+> **Security:** Without `AUTH_HASH` (or auth file), the server blocks all `/api/*` and `/ws` requests with 503. Set `ALLOW_NO_AUTH=1` for dev access without auth.
 
 > **Pitfall:** `CHOKIDAR_USEPOLLING=1` is required in some environments (EMFILE limit).
 
@@ -113,10 +118,13 @@ Frontend shows agent selector when `agents.length > 1`. All API endpoints accept
 
 ## Security
 
-- `safePath()` prevents directory traversal (strips `..`, checks `.md`, containment)
-- XSS risk in `FileViewer` via `dangerouslySetInnerHTML` — known, acceptable for local use
-- Rate limiting on login: 3 failed attempts → 5min IP ban
-- Password hash stored in `~/.hermes/.memory-viewer-auth` (file) or `AUTH_HASH` env var
+- **Auth:** Fail-closed by default — no hash = 503 on all `/api/*` and `/ws`. `ALLOW_NO_AUTH=1` for dev.
+- **Password:** Min 8 chars, bcrypt async (12 rounds). Stored in `~/.hermes/.memory-viewer-auth` (mode 0o600) or `AUTH_HASH` env.
+- **Rate limit:** 3 failed attempts → 5min IP ban. Global: 30/min. `TRUST_PROXY=1` for XFF support.
+- **XSS:** `rehype-sanitize` after `rehypeRaw` in ReactMarkdown — blocks script, on*, iframes, javascript: URLs.
+- **Traversal:** `safePath()` strips `..`, checks `.md`, containment. Workspace-assets validated with `path.resolve`.
+- **CORS:** Configurable via `CORS_ORIGINS` env (comma-separated). Default: localhost only.
+- **WebSocket:** Requires auth token. No connections on login page.
 
 ## Branding
 

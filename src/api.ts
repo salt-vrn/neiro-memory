@@ -2,7 +2,6 @@
 
 // Derive base path from Vite's base config (e.g. '/memory-viewer/')
 const _basePath = (import.meta.env.BASE_URL || '/').replace(/\/$/, '');
-let _baseUrl = "";
 let _currentAgent: string | null = null;
 
 // Token management
@@ -31,7 +30,7 @@ export function getCurrentAgent(): string | null { return _currentAgent; }
 export function setCurrentAgent(agentId: string | null) { _currentAgent = agentId; }
 
 function buildUrl(endpoint: string, params?: Record<string, string>): string {
-  const base = _baseUrl || (window.location.origin + _basePath);
+  const base = window.location.origin + _basePath;
   const url = new URL(`${base}${endpoint}`);
   if (_currentAgent) url.searchParams.set("agent", _currentAgent);
   if (params) Object.entries(params).forEach(([k, v]) => url.searchParams.set(k, v));
@@ -44,7 +43,7 @@ export interface FileData { content: string; mtime: string; size: number; }
 export interface SystemInfo { uptime: number; memTotal: number; memFree: number; memUsed: number; load: number[]; platform: string; hostname: string; totalFiles: number; }
 export interface SearchResult { path: string; matches: { line: number; text: string }[]; }
 export interface SkillInfo { id: string; name: string; description: string; path: string; }
-export interface AgentInfo { id: string; name: string; type: "hermes" | "openclaw"; workspace: string; extraPaths: string[]; emoji: string; skills?: string[]; }
+export interface AgentInfo { id: string; name: string; type: "hermes" | "openclaw"; workspace: string; emoji: string; skills?: string[]; }
 export interface SaveResult { ok: boolean; mtime: string; }
 export interface ConflictResult { error: "conflict"; message: string; serverMtime: string; serverContent: string; }
 export interface RecentFile { path: string; mtime: number; size: number; }

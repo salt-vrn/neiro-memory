@@ -3,6 +3,37 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import remarkFrontmatter from "remark-frontmatter";
 import rehypeRaw from "rehype-raw";
+import rehypeSanitize, { defaultSchema } from "rehype-sanitize";
+
+// Sanitize schema: allow safe HTML, block scripts/events/iframes
+const sanitizeSchema = {
+  ...defaultSchema,
+  attributes: {
+    ...defaultSchema.attributes,
+    // Allow className on all elements (for Shiki code highlighting)
+    "*": [
+      ...((defaultSchema.attributes?.["*"]) || []).filter(a => a !== "style"),
+      ["className", /^[\w\s-]+$/],
+    ],
+    // Allow class on code/pre for Shiki
+    "code": [["className", /^[\w\s-]+$/]],
+    "pre": [["className", /^[\w\s-]+$/]],
+    // Allow target on links
+    "a": [...((defaultSchema.attributes?.["a"]) || []), "target", "rel"],
+    // Allow src/alt on images
+    "img": [...((defaultSchema.attributes?.["img"]) || []), ["src", /^https?:\/\//], "alt"],
+  },
+  tagNames: [
+    ...(defaultSchema.tagNames || []),
+    // Allow common HTML tags used in markdown
+    "span", "div", "details", "summary",
+  ],
+  protocols: {
+    ...defaultSchema.protocols,
+    href: ["http", "https", "mailto"],
+    src: ["http", "https"],
+  },
+};
 import { fetchFile, saveFile } from "../api";
 import { PencilSimple, FloppyDisk, X, Check, CaretRight, ArrowUp, Copy, Warning, ArrowsClockwise } from "@phosphor-icons/react";
 
@@ -453,7 +484,7 @@ export function FileViewer({ filePath, refreshKey, onNavigate, onOpenFile }: Fil
             })()}
             <ReactMarkdown
               remarkPlugins={[remarkGfm, remarkFrontmatter]}
-              rehypePlugins={[rehypeRaw]}
+              rehypePlugins={[rehypeRaw, [rehypeSanitize, sanitizeSchema]]}
               components={{
                 pre({ children }) {
                   // Shiki/CodeBlock handles its own wrapper, so just pass through
