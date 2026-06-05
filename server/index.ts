@@ -318,7 +318,8 @@ function getWorkspaceForAgent(agentId: string | null | undefined): string {
 function safePath(filePath: string | undefined | null, workspace: string): string | null {
   if (!filePath || filePath.includes("..") || !filePath.endsWith(".md")) return null;
   const full = path.resolve(workspace, filePath);
-  if (!full.startsWith(path.resolve(workspace))) return null;
+  const ws = path.resolve(workspace);
+  if (!full.startsWith(ws + path.sep) && full !== ws) return null;
   return full;
 }
 

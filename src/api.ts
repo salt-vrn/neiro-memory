@@ -57,7 +57,7 @@ export interface SystemCron { id: string; name: string; type: string; schedule: 
 // --- API Functions ---
 
 export async function fetchAgents(): Promise<AgentInfo[]> {
-  const r = await fetch(`${_baseUrl || (window.location.origin + _basePath)}/api/agents`, { headers: authHeaders() });
+  const r = await fetch(buildUrl("/api/agents"), { headers: authHeaders() });
   if (!r.ok) throw new Error("Failed to load agents");
   return r.json();
 }
@@ -113,7 +113,7 @@ export async function fetchRecent(limit = 10): Promise<RecentFile[]> {
 }
 
 export async function fetchAgentStatus(): Promise<AgentStatus> {
-  const r = await fetch(`${_baseUrl}/api/agent/status${_currentAgent ? `?agent=${_currentAgent}` : ""}`, { headers: authHeaders() });
+  const r = await fetch(buildUrl("/api/agent/status"), { headers: authHeaders() });
   return r.json();
 }
 

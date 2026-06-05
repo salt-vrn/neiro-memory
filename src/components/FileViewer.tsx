@@ -6,6 +6,7 @@ import rehypeRaw from "rehype-raw";
 import { fetchFile, saveFile } from "../api";
 import { PencilSimple, FloppyDisk, X, Check, CaretRight, ArrowUp, Copy, Warning, ArrowsClockwise } from "@phosphor-icons/react";
 
+import { useLocale } from "../hooks/useLocale";
 import { SensitiveText } from "./SensitiveMask";
 
 import { useMarkdownTheme } from "../themes";
@@ -69,7 +70,7 @@ function getHighlighter(): Promise<Highlighter> {
 
 /** Code block with copy button */
 function CodeBlock({ className, children, ...props }: any) {
-  const t = (s: string) => s;
+  const { t } = useLocale();
   const [copied, setCopied] = useState(false);
   const [html, setHtml] = useState<string>("");
   const match = /language-(\w+)/.exec(className || "");
@@ -190,7 +191,7 @@ interface FileViewerProps {
 }
 
 export function FileViewer({ filePath, refreshKey, onNavigate, onOpenFile }: FileViewerProps) {
-  const t = (s: string) => s;
+  const { t } = useLocale();
   const [content, setContent] = useState("");
   const [editContent, setEditContent] = useState("");
   const [mtime, setMtime] = useState("");

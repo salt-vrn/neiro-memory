@@ -261,7 +261,7 @@ export async function handleChangePassword(c: Context) {
   // Hash new password and write to file
   const newHash = bcrypt.hashSync(body.newPassword, 12);
   try {
-    fs.writeFileSync(AUTH_FILE, newHash, "utf-8");
+    fs.writeFileSync(AUTH_FILE, newHash, { encoding: "utf-8", mode: 0o600 });
   } catch (e: any) {
     return c.json({ error: `Failed to save: ${e.message}` }, 500);
   }
