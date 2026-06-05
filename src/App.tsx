@@ -60,7 +60,7 @@ export default function App() {
         setRefreshKey((k) => k + 1);
       }
     }
-  });
+  }, "", authenticated === true);
 
   // Ctrl+K to open search
   useEffect(() => {

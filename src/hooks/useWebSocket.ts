@@ -6,7 +6,7 @@ type MessageHandler = (data: { type: string; event: string; path: string }) => v
  * Auto-reconnecting WebSocket hook for live file-change notifications.
  * Supports dynamic URL for remote connections.
  */
-export function useWebSocket(onMessage: MessageHandler, remoteBaseUrl = "") {
+export function useWebSocket(onMessage: MessageHandler, remoteBaseUrl = "", enabled = true) {
   const wsRef = useRef<WebSocket | null>(null);
   const cbRef = useRef(onMessage);
   cbRef.current = onMessage;
@@ -44,7 +44,8 @@ export function useWebSocket(onMessage: MessageHandler, remoteBaseUrl = "") {
   }, [remoteBaseUrl]);
 
   useEffect(() => {
+    if (!enabled) return;
     connect();
     return () => wsRef.current?.close();
-  }, [connect]);
+  }, [connect, enabled]);
 }

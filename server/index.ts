@@ -65,6 +65,9 @@ interface AgentInfo {
 // ---------------------------------------------------------------------------
 const PORT = Number(process.env.PORT) || 3001;
 const DEFAULT_WORKSPACE = process.env.WORKSPACE_DIR || path.join(os.homedir(), "clawd");
+const CORS_ORIGINS = process.env.CORS_ORIGINS
+  ? process.env.CORS_ORIGINS.split(",").map(s => s.trim())
+  : ["http://localhost:" + PORT, "https://zolotarev215.neirohost.ru"];
 const STATIC_DIR = process.env.STATIC_DIR || path.join(import.meta.dirname, "..", "dist");
 
 const app = new Hono();
@@ -72,7 +75,7 @@ export { app }; // Export for testing
 const { injectWebSocket, upgradeWebSocket } = createNodeWebSocket({ app });
 
 app.use("*", compress());
-app.use("*", cors({ origin: ["http://localhost:8901", "https://zolotarev215.neirohost.ru"] }));
+app.use("*", cors({ origin: CORS_ORIGINS }));
 
 // Auth middleware — protects all routes when AUTH_HASH is set
 app.use("*", async (c, next) => {

@@ -248,8 +248,8 @@ export async function handleChangePassword(c: Context) {
     return c.json({ error: "Both currentPassword and newPassword required" }, 400);
   }
 
-  if (body.newPassword.length < 4) {
-    return c.json({ error: "New password must be at least 4 characters" }, 400);
+  if (body.newPassword.length < 8) {
+    return c.json({ error: "New password must be at least 8 characters" }, 400);
   }
 
   // Verify current password
