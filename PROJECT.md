@@ -14,25 +14,62 @@ Web UI for browsing and editing AI agent memory files. Originally built for Open
 
 ```bash
 npm install
-npm run dev          # Vite + tsx watch (dev mode)
-npm run build        # Production build → dist/
+npm run build
 ```
 
-Production server:
+## Production Deploy
+
+### Environment Variables
+
+| Variable | Required | Default | Description |
+|----------|----------|---------|-------------|
+| `AUTH_HASH` | Yes* | — | bcrypt hash for password auth |
+| `PORT` | No | `3001` | Server port |
+| `HOST` | No | `127.0.0.1` | Bind address (`0.0.0.0` for external access) |
+| `WORKSPACE_DIR` | No | `~/clawd` | Agent workspace path |
+| `CORS_ORIGINS` | No | `*` | Comma-separated allowed origins |
+| `ALLOW_NO_AUTH` | No | — | Set `1` to allow unauthenticated access (dev only) |
+| `TRUST_PROXY` | No | — | Set `1` to trust X-Forwarded-For header |
+| `CHOKIDAR_USEPOLLING` | No | — | Set `1` if hitting EMFILE limits |
+
+*Without `AUTH_HASH` (or `~/.hermes/.memory-viewer-auth` file), all `/api/*` and `/ws` return 503.
+
+### Generate Password
+
 ```bash
-AUTH_HASH='<bcrypt hash>' \
-ALLOW_NO_AUTH=1 \           # optional: allow unauthenticated access (dev only!)
-TRUST_PROXY=1 \             # optional: trust X-Forwarded-For for rate limiting
-CORS_ORIGINS='...' \        # optional: comma-separated allowed origins (default: localhost)
-CHOKIDAR_USEPOLLING=1 \
-WORKSPACE_DIR=/path/to/agent/workspace \
-PORT=8901 \
-npx tsx server/index.ts
+node -e "console.log(require('bcryptjs').hashSync('YOUR_PASSWORD', 12))"
 ```
 
-> **Security:** Without `AUTH_HASH` (or auth file), the server blocks all `/api/*` and `/ws` requests with 503. Set `ALLOW_NO_AUTH=1` for dev access without auth.
+### Run
 
-> **Pitfall:** `CHOKIDAR_USEPOLLING=1` is required in some environments (EMFILE limit).
+```bash
+AUTH_HASH='$2a$12$...' HOST=0.0.0.0 PORT=8901 npx tsx server/index.ts
+```
+
+### Systemd Unit
+
+```ini
+[Unit]
+Description=Neiro Memory
+After=network.target
+
+[Service]
+Type=simple
+WorkingDirectory=/path/to/neiro-memory
+ExecStart=/usr/bin/npx tsx server/index.ts
+Environment=AUTH_HASH=$2a$12$...
+Environment=HOST=0.0.0.0
+Environment=PORT=8901
+Environment=WORKSPACE_DIR=/root/.hermes
+Environment=NODE_ENV=production
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
+```
+
+> **Pitfall:** If `npx` is not in `/usr/bin/`, run `which npx` and use the full path.
 
 ## Architecture
 
@@ -123,7 +160,7 @@ Frontend shows agent selector when `agents.length > 1`. All API endpoints accept
 - **Rate limit:** 3 failed attempts → 5min IP ban. Global: 30/min. `TRUST_PROXY=1` for XFF support.
 - **XSS:** `rehype-sanitize` after `rehypeRaw` in ReactMarkdown — blocks script, on*, iframes, javascript: URLs.
 - **Traversal:** `safePath()` strips `..`, checks `.md`, containment. Workspace-assets validated with `path.resolve`.
-- **CORS:** Configurable via `CORS_ORIGINS` env (comma-separated). Default: localhost only.
+- **CORS:** Configurable via `CORS_ORIGINS` env (comma-separated). Default: `*` (open).
 - **WebSocket:** Requires auth token. No connections on login page.
 
 ## Branding

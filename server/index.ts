@@ -63,10 +63,11 @@ interface AgentInfo {
 // Config
 // ---------------------------------------------------------------------------
 const PORT = Number(process.env.PORT) || 3001;
+const HOST = process.env.HOST || "127.0.0.1";
 const DEFAULT_WORKSPACE = process.env.WORKSPACE_DIR || path.join(os.homedir(), "clawd");
 const CORS_ORIGINS = process.env.CORS_ORIGINS
   ? process.env.CORS_ORIGINS.split(",").map(s => s.trim())
-  : ["http://localhost:" + PORT];
+  : ["*"];
 const STATIC_DIR = process.env.STATIC_DIR || path.join(import.meta.dirname, "..", "dist");
 
 const app = new Hono();
@@ -1203,7 +1204,7 @@ if (fs.existsSync(STATIC_DIR)) {
 // Start
 // ---------------------------------------------------------------------------
 if (process.env.NODE_ENV !== 'test') {
-  const server = serve({ fetch: app.fetch, port: PORT, hostname: "127.0.0.1" }, (info) => {
+  const server = serve({ fetch: app.fetch, port: PORT, hostname: HOST }, (info) => {
     console.log(`📝 Memory Viewer running at http://localhost:${info.port}`);
     console.log(`📂 Default Workspace: ${DEFAULT_WORKSPACE}`);
   });

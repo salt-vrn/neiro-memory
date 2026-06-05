@@ -19,11 +19,24 @@ Web UI for browsing and editing AI agent memory files (Hermes + OpenClaw).
 ## Quick Start
 
 ```bash
+git clone https://github.com/salt-vrn/neiro-memory.git
+cd neiro-memory
 npm install
-npm run dev
+npm run build
 ```
 
-See [PROJECT.md](./PROJECT.md) for architecture, conventions, and agent collaboration guide.
+Set password and run:
+```bash
+# Generate password hash
+node -e "console.log(require('bcryptjs').hashSync('YOUR_PASSWORD', 12))"
+
+# Run server
+AUTH_HASH='your-hash-here' PORT=8901 HOST=0.0.0.0 npx tsx server/index.ts
+```
+
+Open `http://your-ip:8901` in browser.
+
+See [PROJECT.md](./PROJECT.md) for architecture, env vars, systemd unit, and agent collaboration guide.
 
 ## License
 
