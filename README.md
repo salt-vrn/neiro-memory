@@ -53,6 +53,21 @@ location /memory-viewer/ {
 
 See [PROJECT.md](./PROJECT.md) for architecture, env vars, systemd unit, and agent collaboration guide.
 
+## Architecture
+
+```
+Browser → Hono server (auth + API) → filesystem (workspace dir)
+                ↕ WebSocket (live reload via chokidar)
+```
+
+- **Frontend:** React 19, Vite 7, Tailwind CSS 4, CodeMirror 6
+- **Backend:** Hono (Node.js), TypeScript, tsx
+- **Discovery:** auto-detects Hermes profiles (`~/.hermes/profiles/`) and OpenClaw agents (`~/.openclaw/`)
+
+## Credits
+
+Based on [silicondawn/memory-viewer](https://github.com/silicondawn/memory-viewer) v1.2.0 — a memory file browser for OpenClaw. Adapted for Hermes Agent with multi-agent support, cron management, skills browser, and i18n.
+
 ## License
 
 MIT
