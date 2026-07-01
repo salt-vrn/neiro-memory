@@ -282,7 +282,7 @@ function scanDir(dir: string, prefix = ""): TreeNode[] {
     return result;
   }
   for (const entry of entries.sort((a, b) => a.name.localeCompare(b.name))) {
-    if (entry.name.startsWith(".") || entry.name === "node_modules" || (prefix === "" && (entry.name === "skills" || entry.name === "profiles" || entry.name === "agents"))) continue;
+    if (entry.name.startsWith(".") || entry.name === "node_modules" || (prefix === "" && (entry.name === "skills" || entry.name === "profiles" || entry.name === "agents" || entry.name === "logs"))) continue;
     const relPath = prefix ? `${prefix}/${entry.name}` : entry.name;
     if (entry.isDirectory()) {
       const children = scanDir(path.join(dir, entry.name), relPath);
@@ -305,7 +305,7 @@ function collectMdFiles(dir: string, prefix = ""): string[] {
     return files;
   }
   for (const entry of entries) {
-    if (entry.name.startsWith(".") || entry.name === "node_modules" || (prefix === "" && (entry.name === "skills" || entry.name === "profiles" || entry.name === "agents"))) continue;
+    if (entry.name.startsWith(".") || entry.name === "node_modules" || (prefix === "" && (entry.name === "skills" || entry.name === "profiles" || entry.name === "agents" || entry.name === "logs"))) continue;
     const relPath = prefix ? `${prefix}/${entry.name}` : entry.name;
     if (entry.isDirectory()) {
       files.push(...collectMdFiles(path.join(dir, entry.name), relPath));

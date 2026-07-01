@@ -3,15 +3,7 @@ import type { FileNode } from "../api";
 import { CaretDown, CaretRight, Folder, FileText, Brain, Dna, Robot, User, Wrench, ListChecks, Heartbeat, IdentificationCard, Gear, Calendar, Clock, CaretUp } from "@phosphor-icons/react";
 
 
-/** Well-known bot config files shown in the top section */
-const BOT_FILES = new Set([
-  "AGENTS.md", "SOUL.md", "MEMORY.md", "USER.md", "TOOLS.md",
-  "TODO.md", "HEARTBEAT.md", "IDENTITY.md", "BOOTSTRAP.md",
-]);
 
-function isBotFile(name: string): boolean {
-  return BOT_FILES.has(name);
-}
 
 /** Check if a path is a daily note (memory/YYYY-MM-DD*.md) */
 function isDailyNote(path: string): boolean {
@@ -41,7 +33,6 @@ const COLLAPSED_KEY = "memory-viewer-collapsed";
 const SECTIONS_KEY = "memory-viewer-sections";
 
 interface SectionState {
-  coreFiles: boolean;
   files: boolean;
 }
 
@@ -54,20 +45,20 @@ function loadCollapsedState(): Set<string> {
   }
 }
 
+function loadSectionState(): SectionState {
+  try {
+    const stored = localStorage.getItem(SECTIONS_KEY);
+    return stored ? JSON.parse(stored) : { files: true };
+  } catch {
+    return { files: true };
+  }
+}
+
 function saveCollapsedState(collapsed: Set<string>) {
   try {
     localStorage.setItem(COLLAPSED_KEY, JSON.stringify([...collapsed]));
   } catch {
     // Ignore storage errors
-  }
-}
-
-function loadSectionState(): SectionState {
-  try {
-    const stored = localStorage.getItem(SECTIONS_KEY);
-    return stored ? JSON.parse(stored) : { coreFiles: false, files: true };
-  } catch {
-    return { coreFiles: false, files: true };
   }
 }
 
@@ -116,71 +107,17 @@ export function FileTree({ nodes, activeFile, onSelect }: FileTreeProps) {
     });
   }, []);
 
-  const { botFiles, otherNodes } = useMemo(() => {
-    const bot: FileNode[] = [];
-    const other: FileNode[] = [];
-    
-    for (const node of nodes) {
-      if (node.type === "file" && isBotFile(node.name)) {
-        bot.push(node);
-      } else {
-        other.push(node);
-        // Extract bot files from one level of nesting (e.g. memories/MEMORY.md)
-        // and filter them out of the directory children to avoid duplication
-        if (node.type === "dir" && node.children) {
-          const filteredChildren = node.children.filter(
-            (child) => !(child.type === "file" && isBotFile(child.name))
-          );
-          for (const child of node.children) {
-            if (child.type === "file" && isBotFile(child.name)) {
-              bot.push(child);
-            }
-          }
-          // Update the node's children to exclude extracted files
-          if (filteredChildren.length !== node.children.length) {
-            const idx = other.length - 1;
-            other[idx] = { ...node, children: filteredChildren };
-          }
-        }
-      }
-    }
-    
-    const order = [...BOT_FILES];
-    bot.sort((a, b) => order.indexOf(a.name) - order.indexOf(b.name));
-    other.sort((a, b) => {
+  const sortedNodes = useMemo(() => {
+    return [...nodes].sort((a, b) => {
       if (a.type === "dir" && b.type !== "dir") return -1;
       if (a.type !== "dir" && b.type === "dir") return 1;
       return a.name.localeCompare(b.name);
     });
-    
-    return { botFiles: bot, otherNodes: other };
   }, [nodes]);
 
   return (
     <nav className="text-sm" aria-label="File tree">
-      {/* Bot Config Files - Collapsible */}
-      {botFiles.length > 0 && (
-        <div className="mb-2">
-          <button
-            onClick={() => toggleSection("coreFiles")}
-            className="w-full flex items-center justify-between px-2 py-1.5 text-[10px] font-semibold uppercase tracking-wider transition-colors hover:text-blue-400"
-            style={{ color: "var(--text-muted)" }}
-          >
-            {t("sidebar.coreFiles") || "Core Files"}
-            {sections.coreFiles ? <CaretDown className="w-3 h-3" /> : <CaretRight className="w-3 h-3" />}
-          </button>
-          {sections.coreFiles && (
-            <div className="flex flex-col">
-              {botFiles.map((node) => (
-                <TreeNode key={node.path} node={node} activeFile={activeFile} onSelect={onSelect} depth={0} collapsed={collapsed} onToggle={toggleCollapsed} />
-              ))}
-            </div>
-          )}
-        </div>
-      )}
-      
-      {/* Files - Collapsible */}
-      {otherNodes.length > 0 && (
+      {sortedNodes.length > 0 && (
         <div>
           <button
             onClick={() => toggleSection("files")}
@@ -192,7 +129,7 @@ export function FileTree({ nodes, activeFile, onSelect }: FileTreeProps) {
           </button>
           {sections.files && (
             <div className="flex flex-col">
-              {otherNodes.map((node) => (
+              {sortedNodes.map((node) => (
                 <TreeNode key={node.path} node={node} activeFile={activeFile} onSelect={onSelect} depth={0} collapsed={collapsed} onToggle={toggleCollapsed} />
               ))}
             </div>
@@ -213,8 +150,6 @@ function TreeNode({ node, activeFile, onSelect, depth, collapsed, onToggle }: {
 }) {
   const indent = depth * 12 + 8;
   const isCollapsed = collapsed.has(node.path);
-  // Default: all directories are collapsed unless explicitly expanded
-  const isOpen = !collapsed.has(node.path);
 
   if (node.type === "dir") {
     return (
